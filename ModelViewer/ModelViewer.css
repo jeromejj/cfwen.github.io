@@ -1,0 +1,28 @@
+#model-container {
+    position: relative;
+    text-align: center;
+    display: inline-block;
+}
+
+#log {
+    width: 98%;
+    text-align: left;
+    color: #4c4c4c;
+    font-size: 11px !important;
+    font-family: Menlo, monospace;
+    font-weight: normal;
+    margin: 2px;
+    border: 0 dashed #808080;
+}
+
+#source, #target, #result, .viewer {
+    /*width: 100%;
+    height: 100%;
+    float: left;*/
+}
+
+    #source > canvas, #target > canvas, #result > canvas, .viewer > canvas {
+        width: 100%;
+        height: 100%;
+        border: 1px solid black;
+    }
