@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>sphere</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="" />
+    <meta name="keywords" content="" />    
+    <script src="js/three.js"></script>    
+    <script src="js/Detector.js"></script>
+    <script src="js/DeviceOrientationControls.js"></script>    
+    <script src="js/TrackballControls.js"></script>    
+    <script src='js/threex.videotexture.js'></script>
+    <!--<script src="js/stats.min.js"></script>
+    <script src="js/StereoEffect.js"></script>
+    <script src="js/VREffect.js"></script>
+    <script src="js/VRControls.js"></script>-->
+    <script src="js/jquery-2.1.4.js"></script>
+    <style>
+        body {
+            /*color: #fff;*/
+            font-size: 13px;
+            text-align: center;            
+            background-color: #fff;
+            margin: 0;
+            overflow:hidden;
+        }
+        #container {
+            position: relative;
+            text-align: center;
+            display: inline-block;
+        }    
+        .menu {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+        }  
+        /*.log{
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 200px;
+            height: 100px;
+            overflow: scroll;
+        }*/
+        .button {
+            display: inline-block;
+            padding: 8px;
+            color: #FFF;
+            background-color: #555;
+            cursor: hand;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        .disabled{
+            opacity: 0.2;
+            display: hidden;
+        }
+        .enabled{
+            opacity: 0.7;
+        }
+
+    </style>
+</head>
+<body>
+<div id="container"></div>
+<!-- <div id="log" class="log"></div>     -->
+<div class="menu">
+    <div class="button mouse">Mouse</div>
+    <div class="button touch">Touch</div>
+    <div class="button gyro">Gyro</div>
+</div>
+
+<script>
+    if (!Detector.webgl) Detector.addGetWebGLMessage();
+
+    var camera, scene, renderer, controls, effect;
+    var container;
+    var stats;
+    var videotexture;
+    
+    var mouseMode, touchMode, gyroMode;
+    var hasTouch = !!('ontouchstart' in window);
+    var hasMouse = !!('onmousemove' in window);
+    var hasGyro = ( window.orientation !== undefined  || window.DeviceOrientationEvent !== undefined);
+    hasGyro = false;
+    // var hasGyro = ( window.orientation !== undefined );
+    // var isUserInteracting = false,
+    // onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+    // lon = 0, onMouseDownLon = 0,
+    // lat = 0, onMouseDownLat = 0,
+    // phi = 0, theta = 0;
+    function $$(id){
+        return document.getElementById(id);
+    }
+    $('.button').click(function(){
+        alert('button clicked');
+        if(hasMouse){
+            if($(this).hasClass('enabled')){
+                $(this).removeClass('enabled').addClass('disabled');
+            }
+            else{
+                $(this).removeClass('disabled').addClass('enabled');
+            }
+        }
+    });
+
+    // function myLog(msg) {
+    //     var name = '';
+    //     try {
+    //         var caller = arguments.callee.caller.name;
+    //     }
+    //     catch (e) {
+    //     }
+    //     alert(msg);
+    //     $$('log').innerHTML += "#" + name + "> " + msg + "<br/>";
+    // }
+    // window.onload = function () {
+    //     try {
+    //         window.console.log = myLog;
+    //     }
+    //     catch (e) {
+    //         $$('log').style.display = none;
+    //     }
+    //     if (!Detector.webgl) {
+    //         console.log('your browser does not support webgl');
+    //         Detector.addGetWebGLMessage();
+    //     }
+    // }
+    // console.log("log");
+    init();
+    animate();    
+
+
+    function init() {                
+
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+        camera.target = new THREE.Vector3( 0, 0, 0 );
+        camera.position.z = 1;
+
+        if ( hasGyro ) {
+            
+            controls = new THREE.DeviceOrientationControls( camera );            
+            
+            mouseMode = false;
+            // var mouseButton = document.querySelector( '.mouse' );
+            // mouseButton.style.className += ' disabled';
+            touchMode = false;
+            // var touchButton = document.querySelector( '.touch' );
+            // touchButton.style.className += ' disabled';
+            gyroMode = true;
+            // var gyroButton = document.querySelector('.gyro');
+            
+        }
+        else{
+
+            controls = new THREE.TrackballControls( camera );
+
+            controls.rotateSpeed = 1.0;
+            controls.zoomSpeed = 1.2;
+            controls.panSpeed = 0.8;
+
+            controls.noZoom = true;
+            controls.noPan = true;
+
+            // controls.staticMoving = false;
+            // controls.dynamicDampingFactor = 0.3;
+
+            // controls.keys = [ 65, 83, 68 ];
+
+            controls.addEventListener( 'change', render );
+            if( hasMouse ){
+                mouseMode = true;
+                // var mouseButton = document.querySelector( '.mouse' );
+                // mouseButton.style.className += ' enabled';
+            }
+            if ( hasTouch ){                
+                touchMode = true;
+                // var touchButton = document.querySelector( '.touch' );
+                // touchButton.style.className += ' enabled';
+            }
+            gyroMode = false;
+
+        } 
+
+        // vrControls = new THREE.VRControls(camera);
+
+        scene = new THREE.Scene();
+
+        var geometry = new THREE.SphereGeometry( 500, 64, 32 );
+        geometry.applyMatrix( new THREE.Matrix4().makeScale( -1, 1, 1 ) );
+        var uvs = geometry.faceVertexUvs[ 0 ];
+
+        for ( var i = 0; i < uvs.length; i ++ ) {
+
+            for ( var j = 0; j < 3; j ++ ) {
+
+                uvs[ i ][ j ].x *= 0.5;
+
+            }
+
+        }
+
+        videoTexture = new THREEx.VideoTexture('video/MaryOculus.webm');
+        videoTexture.minFilter = THREEx.LinearFilter;
+        videoTexture.format = THREEx.RGBFormat;
+        videoTexture.generateMipmaps = false;  
+
+        var video = videoTexture.video
+
+        var material = new THREE.MeshBasicMaterial({
+            map: videoTexture.texture
+        });
+
+        // var material = new THREE.MeshBasicMaterial( {
+        //     map: THREE.ImageUtils.loadTexture( 'images/pano2.jpg' )
+        // } );
+
+        var sphere = new THREE.Mesh( geometry, material );
+        
+        scene.add( sphere );
+
+        renderer = new THREE.WebGLRenderer();
+        renderer.setPixelRatio( window.devicePixelRatio );
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        
+       
+        // effect = new THREE.StereoEffect(renderer);
+                
+        // var fullScreenButton = document.querySelector( '.full-screen' );        
+        // fullScreenButton.onclick = function() {
+        //     effect.setFullScreen( true );
+        // };
+        
+
+        container = document.getElementById( 'container' );
+        container.appendChild( renderer.domElement );
+
+        // stats = new Stats();
+        // stats.domElement.style.position = 'absolute';
+        // stats.domElement.style.top = '0px';
+        // stats.domElement.style.zIndex = 100;
+        // container.appendChild( stats.domElement );
+        
+        
+        // vrControls = new THREE.VRControls(camera);
+        // vrEffect = new THREE.VREffect(renderer);
+
+        // document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+        // document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+        // document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+        // document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
+        // document.addEventListener( 'DOMMouseScroll', onDocumentMouseWheel, false);        
+
+        // document.addEventListener( 'dragover', function ( event ) {
+
+        //     event.preventDefault();
+        //     event.dataTransfer.dropEffect = 'copy';
+
+        // }, false );
+
+        // document.addEventListener( 'dragenter', function ( event ) {
+
+        //     document.body.style.opacity = 0.5;
+
+        // }, false );
+
+        // document.addEventListener( 'dragleave', function ( event ) {
+
+        //     document.body.style.opacity = 1;
+
+        // }, false );
+
+        // document.addEventListener( 'drop', function ( event ) {
+
+        //     event.preventDefault();
+
+        //     var reader = new FileReader();
+        //     reader.addEventListener( 'load', function ( event ) {
+
+        //         material.map.image.src = event.target.result;
+        //         material.map.needsUpdate = true;
+
+        //     }, false );
+        //     reader.readAsDataURL( event.dataTransfer.files[ 0 ] );
+
+        //     document.body.style.opacity = 1;
+
+        // }, false );        
+
+        window.addEventListener( 'resize', onWindowResize, false );
+        // render();
+
+    }
+
+    // function onEnterVRFullscreen() {
+    //    vrEffect.setFullScreen(true);
+    // } 
+    // function onWindowResize() {
+    //    vrEffect.setSize(window.innerWidth, window.innerHeight);
+    // } 
+    // function onRequestAnimationFrame() {
+    //    vrControls.update();
+    //    vrEffect.render(scene, camera);
+    // }
+    function onWindowResize() {
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        // controls.handleResize();
+
+        render();
+    }
+
+
+    function animate() {
+
+        requestAnimationFrame( animate );
+        
+        // if ( window.orientation !== undefined ) {
+
+
+        controls.update();
+
+        videoTexture.update();
+
+        // }
+        // else {
+
+        //     update();
+
+        // }
+        // vrControls.update();
+        // vrEffect.render( scene, camera );
+
+        renderer.render( scene, camera );
+
+    }
+
+    function render() {
+
+        renderer.render( scene, camera );                
+        // stats.update();
+        // effect.render(scene, camera);
+    }
+
+    // function update() {
+
+    //     if ( isUserInteracting === false ) {
+
+    //         //lon += 0.1;
+
+    //     }
+
+    //     lat = Math.max( - 85, Math.min( 85, lat ) );
+    //     phi = THREE.Math.degToRad( 90 - lat );
+    //     theta = THREE.Math.degToRad( lon );
+
+    //     camera.target.x = 200 * Math.sin( phi ) * Math.cos( theta );
+    //     camera.target.y = 200 * Math.cos( phi );
+    //     camera.target.z = 200 * Math.sin( phi ) * Math.sin( theta );
+
+    //     camera.lookAt( camera.target );
+
+    //     /*
+    //     // distortion
+    //     camera.position.copy( camera.target ).negate();
+    //     */
+
+    //     renderer.render( scene, camera );
+
+    // }       
+</script>
+</body>
+</html>
