@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - loaders - OBJ loader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000;
+				color: #fff;
+				margin: 0;
+				overflow: hidden;
+			}
+			.btn { 
+				color: #333;
+			    background-color: #fff;
+			    border-color: #ccc;
+				
+				font-weight: bold; 
+				cursor: pointer;
+				margin: 0 auto; 
+				width: 100%;
+				
+    			display: inline-block;
+				padding: 6px 12px;
+				margin-bottom: 0;
+				font-size: 14px;
+				font-weight: 400;
+				line-height: 1.42857143;
+				text-align: center;
+				white-space: nowrap;
+				vertical-align: middle;
+				touch-action: manipulation;
+			    cursor: pointer;
+			    -webkit-user-select: none;
+			    border: 1px solid #ccc;
+   				border-radius: 1px;
+   				z-index: 10;
+			}
+			.btn-primary {
+				color: #fff;
+				background-color: #337ab7;
+    			border-color: #2e6da4;
+			}
+			.control {
+				 display:flex; 
+				 width: 100%; 
+				 position:absolute; 
+				 bottom:0;				 
+				 text-align:center;
+				 margin: 0 auto;
+			}
+		</style>
+	</head>
+
+	<body style="width:100%">		
+		<div class="control">
+			<button type="button" onclick="handleClick('s')" id="smooth" class="btn btn-primary">Smooth</button>
+			<button type="button" onclick="handleClick('f')" id="flat" class="btn">Flat</button>
+			<button type="button" onclick="handleClick('w')" id="wireframe" class="btn">Wireframe</button>
+			<button type="button" onclick="handleClick('t')" id="texture" class="btn">Texture</button>
+		</div>
+		<script>
+		var smoothMode = true;
+		var flatMode = false;
+		var wireframeMode = false;
+		var textureMode = false;
+		function $$(id){
+			return document.getElementById(id);
+		}
+		function handleClick(code){
+			onKeyDown({keyCode:code.charCodeAt(0)});
+
+			if(smoothMode){
+				$$('smooth').className = 'btn btn-primary';
+			}
+			else{
+				$$('smooth').className = 'btn';	
+			}
+			if(flatMode){
+				$$('flat').className = 'btn btn-primary';
+			}
+			else{
+				$$('flat').className = 'btn';	
+			}
+			if(wireframeMode){
+				$$('wireframe').className = 'btn btn-primary';
+			}
+			else{
+				$$('wireframe').className = 'btn';	
+			}
+			if(textureMode){
+				$$('texture').className = 'btn btn-primary';
+			}
+			else{
+				$$('texture').className = 'btn';	
+			}
+		}
+		</script>
+		<script src="js/three.min.js"></script>		
+		<script src="js/OrbitControls.js"></script>		
+		<script src="js/PLYLoader.js"></script>		
+
+		<script>
+
+			var container;
+			var camera, scene, renderer;
+			
+			var texture;
+
+			init();
+			animate();
+
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.z = 250;
+
+				controls = new THREE.OrbitControls( camera );
+
+				scene = new THREE.Scene();
+
+				var ambient = new THREE.AmbientLight( 0xa9a9a9 );
+				scene.add( ambient );
+
+				var directionalLight = new THREE.DirectionalLight( 0xffeedd );
+				directionalLight.position.set( 0, 0, 100 );
+				scene.add( directionalLight );
+				var directionalLight2 = new THREE.DirectionalLight( 0xbad1e5 );
+				directionalLight2.position.set( 0, 0, -500 );
+				scene.add( directionalLight2 );
+				var pointLight = new THREE.PointLight( 0xbad1e5 );
+				pointLight.position.set( 0, 100, 100 );
+				// scene.add( pointLight );
+
+				// var lights = [];
+				// lights[0] = new THREE.PointLight( 0xffffff, 1, 0 );
+				// lights[1] = new THREE.PointLight( 0xffffff, 1, 0 );
+				// lights[2] = new THREE.PointLight( 0xffffff, 1, 0 );
+				
+				// lights[0].position.set( 0, 0, 200 );
+				// lights[1].position.set( 100, 200, 100 );
+				// lights[2].position.set( -100, -200, -100 );
+
+				// scene.add( lights[0] );
+				// scene.add( lights[1] );
+				// scene.add( lights[2] );
+								
+								
+				// texture
+
+				var manager = new THREE.LoadingManager();
+				manager.onProgress = function ( item, loaded, total ) {
+
+					console.log( item, loaded, total );
+
+				};				
+
+				var onProgress = function ( xhr ) {
+					if ( xhr.lengthComputable ) {
+						var percentComplete = xhr.loaded / xhr.total * 100;
+						console.log( Math.round(percentComplete, 2) + '% downloaded' );
+					}
+				};
+
+				var onError = function ( xhr ) {
+				};
+
+				texture = THREE.ImageUtils.loadTexture( "checker.jpg" );
+				var material = new THREE.MeshPhongMaterial( {
+					// color: 0x565c5f,
+					color: 0x898c8e,					
+					specular: 0x222222,
+					shininess: 40,
+					side: THREE.DoubleSide,										
+					normalScale: new THREE.Vector2( 0.5, 0.8 ),
+					wireframe: false,
+					vertexColors: THREE.VertexColors,				
+					shading: THREE.SmoothShading,
+					reflectivity: 1,
+					refractionRatio: 0.98,
+					skinning: false,		
+				} );
+
+				
+				var loader = new THREE.PLYLoader( manager );
+				loader.load( 'sophie.ply', function ( geometry ) {
+
+					
+					geometry.computeFaceNormals();
+					geometry.computeVertexNormals();
+								
+					var mesh = new THREE.Mesh( geometry, material );
+					
+					mesh.castShadow = true;
+					mesh.receiveShadow = true;
+
+					scene.add(mesh);		
+					
+				}, onProgress, onError );
+
+				//
+				
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setClearColor( 0xffffff, 1 );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				
+				container.appendChild( renderer.domElement );
+				
+
+				window.addEventListener( 'resize', onWindowResize, false );
+				window.addEventListener('keydown', onKeyDown, false);
+
+			}
+
+			function onKeyDown(e) {
+				var key = String.fromCharCode(e.keyCode);
+				if(key === 'w' || key === 'W' ) {// wireframe
+					for(var i=0; i< scene.children.length; ++i){
+						var child = scene.children[i];
+						if(child instanceof THREE.Mesh){
+							child.material.wireframe = !child.material.wireframe;
+							wireframeMode = child.material.wireframe;					
+							if(child.material.wireframe){
+								child.material.vertexColors = THREE.FaceColors;
+								child.material.shading = THREE.SmoothShading
+								smoothMode = true;
+								flatMode = false;
+							}
+							else{
+								child.material.vertexColors = THREE.VertexColors;
+							}
+							child.material.needsUpdate = true;
+						}
+					}
+				}
+				if(key === 's' || key === 'S' ) {// smooth shading
+					for(var i=0; i< scene.children.length; ++i){
+						var child = scene.children[i];
+						if(child instanceof THREE.Mesh){				
+							child.material.shading = THREE.SmoothShading;	
+							smoothMode = true;
+							flatMode = false;						
+							child.material.needsUpdate = true;						
+						}
+					}
+				}
+				if(key === 'f' || key === 'F' ) {// flat shading
+					for(var i=0; i< scene.children.length; ++i){
+						var child = scene.children[i];
+						if(child instanceof THREE.Mesh){							
+							if(!child.material.wireframe){
+								child.material.shading = THREE.FlatShading;
+								flatMode = true;
+								smoothMode = false;
+								child.material.needsUpdate = true;
+							}
+							
+						}
+					}
+				}
+				if(key === 't' || key === 'T' ) {// smooth shading
+					for(var i=0; i< scene.children.length; ++i){
+						var child = scene.children[i];
+						if(child instanceof THREE.Mesh){
+							if(child.material.map){
+								child.material.map = undefined;
+							}
+							else{
+								child.material.map = texture;
+							}
+							texureMode = !!child.material.map;
+							child.material.needsUpdate = true;
+						}
+					}
+				}		
+				
+			}
+
+			function onWindowResize() {				
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}			
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				controls.update();
+				render();
+
+			}
+
+			function render() {				
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>
