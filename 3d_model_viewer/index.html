@@ -131,7 +131,8 @@
 		<script>
 
 			var container;
-			var camera, scene, renderer;
+			var camera, camera3d, camera2d, scene, renderer;
+			var controls, controls3d, controls2d;
 			
 			var texture;
 
@@ -146,10 +147,17 @@
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-				camera.position.z = 250;
+				camera3d = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera3d.position.z = 250;
 
-				controls = new THREE.OrbitControls( camera );
+				camera2d = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera2d.position.z = 2;
+				
+				controls3d = new THREE.OrbitControls( camera3d );
+				controls2d = new THREE.OrbitControls( camera2d );
+
+				camera = camera3d;
+				controls = controls3d;
 
 				scene = new THREE.Scene();
 
@@ -338,6 +346,8 @@
 						if(child instanceof THREE.Mesh){
 							d3Mode = true;
 							scene.children[i] = mesh;
+							camera = camera3d;
+							controls = controls3d;
 							// child = mesh;
 							// child.geometry.vertices = vertices;															
 							// child.geometry.computeFaceNormals();
@@ -347,8 +357,8 @@
 							// child.geometry.dynamic = true;
 							// child.geometry._bufferGeometry.attributes.position.needsUpdate = true;
 							// child.geometry._bufferGeometry.attributes.normal.needsUpdate = true;
-							camera.position.z = 250;
-							camera.updateProjectionMatrix();
+							// camera.position.z = 250;
+							// camera.updateProjectionMatrix();
 						}
 					}
 				}
@@ -358,6 +368,8 @@
 						if(child instanceof THREE.Mesh){
 							d3Mode = false;
 							scene.children[i] = paramMesh;
+							camera = camera2d;
+							controls = controls2d;
 							// child = paramMesh;
 							// child.geometry.vertices = uvs;	
 							// child.geometry.computeFaceNormals();
@@ -367,8 +379,8 @@
 							// child.geometry.dynamic = true;
 							// child.geometry._bufferGeometry.attributes.position.needsUpdate = true;
 							// child.geometry._bufferGeometry.attributes.normal.needsUpdate = true;
-							camera.position.z = 2;
-							camera.updateProjectionMatrix();
+							// camera.position.z = 2;
+							// camera.updateProjectionMatrix();
 						}
 					}
 				}
@@ -377,7 +389,7 @@
 			function onWindowResize() {				
 
 				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
+				camera.updateProjectionMatrix();				
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
