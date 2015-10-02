@@ -5,12 +5,15 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
+			*{
+				border: none;
+			}
 			body {
 				font-family: Monospace;
 				background-color: #000;
 				color: #fff;
 				margin: 0;
-				overflow: hidden;
+				overflow: hidden;				
 			}
 			.btn { 
 				color: #333;
@@ -35,6 +38,7 @@
 			    cursor: pointer;
 			    -webkit-user-select: none;
 			    border: 1px solid #ccc;
+			    border-right: none;
    				border-radius: 1px;
    				z-index: 10;
 			}
@@ -51,14 +55,19 @@
 				 text-align:center;
 				 margin: 0 auto;
 			}
+			.control:first-child{
+				border-left: none;
+			}
 		</style>
 	</head>
 
 	<body style="width:100%">		
 		<div class="control">
-			<button type="button" onclick="handleClick('s')" id="smooth" class="btn btn-primary">Smooth</button>
-			<button type="button" onclick="handleClick('f')" id="flat" class="btn">Flat</button>
+			<!-- <button type="button" onclick="handleClick('s')" id="smooth" class="btn btn-primary">Smooth</button>
+			<button type="button" onclick="handleClick('f')" id="flat" class="btn">Flat</button> -->
 			<button type="button" onclick="handleClick('w')" id="wireframe" class="btn">Wireframe</button>
+			<button type="button" onclick="handleClick('g')" id="3dview" class="btn btn-primary">3D View</button>
+			<button type="button" onclick="handleClick('p')" id="2dview" class="btn">2D View</button>
 			<button type="button" onclick="handleClick('t')" id="texture" class="btn">Texture</button>
 		</div>
 		<script>
@@ -66,24 +75,35 @@
 		var flatMode = false;
 		var wireframeMode = false;
 		var textureMode = false;
+		var d3Mode = false;
+
 		function $$(id){
 			return document.getElementById(id);
 		}
 		function handleClick(code){
 			onKeyDown({keyCode:code.charCodeAt(0)});
 
-			if(smoothMode){
-				$$('smooth').className = 'btn btn-primary';
+			if(d3Mode){
+				$$('3dview').className = 'btn btn-primary';
+				$$('2dview').className = 'btn';
 			}
 			else{
-				$$('smooth').className = 'btn';	
+				$$('2dview').className = 'btn btn-primary';
+				$$('3dview').className = 'btn';	
 			}
-			if(flatMode){
-				$$('flat').className = 'btn btn-primary';
-			}
-			else{
-				$$('flat').className = 'btn';	
-			}
+
+			// if(smoothMode){
+			// 	$$('smooth').className = 'btn btn-primary';
+			// }
+			// else{
+			// 	$$('smooth').className = 'btn';	
+			// }
+			// if(flatMode){
+			// 	$$('flat').className = 'btn btn-primary';
+			// }
+			// else{
+			// 	$$('flat').className = 'btn';	
+			// }
 			if(wireframeMode){
 				$$('wireframe').className = 'btn btn-primary';
 			}
@@ -108,6 +128,8 @@
 			var camera, scene, renderer;
 			
 			var texture;
+
+			var mesh, paramMesh;
 
 			init();
 			animate();
@@ -192,15 +214,17 @@
 				loader.load( 'sophie.ply', function ( geometry ) {
 
 					
+					paramMesh = genParamMesh(geometry, material);
+
 					geometry.computeFaceNormals();
 					geometry.computeVertexNormals();
-								
-					var mesh = new THREE.Mesh( geometry, material );
+										
+					mesh = new THREE.Mesh( geometry, material );
 					
 					mesh.castShadow = true;
 					mesh.receiveShadow = true;
 
-					scene.add(mesh);		
+					scene.add(mesh);	
 					
 				}, onProgress, onError );
 
@@ -217,6 +241,28 @@
 				window.addEventListener( 'resize', onWindowResize, false );
 				window.addEventListener('keydown', onKeyDown, false);
 
+			}
+
+			function genParamMesh(geometry, material){
+				var paramGeometry = new THREE.Geometry();
+				paramGeometry.faces = geometry.faces.slice();
+				paramGeometry.faceVertexUvs = geometry.faceVertexUvs.slice();
+				paramGeometry.colors = geometry.colors.slice();
+				paramGeometry.uvs = geometry.uvs.slice();
+								
+				for(var i=0; i<geometry.uvs.length; ++i){
+					uv2 = geometry.uvs[i];
+					paramGeometry.vertices.push(new THREE.Vector3(uv2.x,uv2.y,0));
+				}
+				paramGeometry.computeBoundingSphere();
+				paramGeometry.computeFaceNormals();
+				paramGeometry.computeVertexNormals();
+				var center = paramGeometry.boundingSphere.center;
+				paramGeometry.translate( -center.x, -center.y, -center.z );
+				paramGeometry.rotateZ(Math.PI);
+
+				var paramMesh = new THREE.Mesh(paramGeometry, material);
+				return paramMesh;
 			}
 
 			function onKeyDown(e) {
@@ -280,7 +326,46 @@
 						}
 					}
 				}		
-				
+				if(key === 'g' || key === 'G' ) {// 3D View
+					for(var i=0; i< scene.children.length; ++i){
+						var child = scene.children[i];
+						if(child instanceof THREE.Mesh){
+							d3Mode = true;
+							scene.children[i] = mesh;
+							// child = mesh;
+							// child.geometry.vertices = vertices;															
+							// child.geometry.computeFaceNormals();
+  					// 		child.geometry.computeVertexNormals();							
+							// child.geometry.verticesNeedUpdate = true;
+							// child.geometry.normalsNeedUpdate = true;
+							// child.geometry.dynamic = true;
+							// child.geometry._bufferGeometry.attributes.position.needsUpdate = true;
+							// child.geometry._bufferGeometry.attributes.normal.needsUpdate = true;
+							camera.position.z = 250;
+							camera.updateProjectionMatrix();
+						}
+					}
+				}
+				if(key === 'p' || key === 'P' ) {// 2D View
+					for(var i=0; i< scene.children.length; ++i){
+						var child = scene.children[i];
+						if(child instanceof THREE.Mesh){
+							d3Mode = false;
+							scene.children[i] = paramMesh;
+							// child = paramMesh;
+							// child.geometry.vertices = uvs;	
+							// child.geometry.computeFaceNormals();
+  					// 		child.geometry.computeVertexNormals();							
+							// child.geometry.verticesNeedUpdate = true;
+							// child.geometry.normalsNeedUpdate = true;
+							// child.geometry.dynamic = true;
+							// child.geometry._bufferGeometry.attributes.position.needsUpdate = true;
+							// child.geometry._bufferGeometry.attributes.normal.needsUpdate = true;
+							camera.position.z = 2;
+							camera.updateProjectionMatrix();
+						}
+					}
+				}
 			}
 
 			function onWindowResize() {				
